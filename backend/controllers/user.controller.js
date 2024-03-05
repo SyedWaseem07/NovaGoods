@@ -98,8 +98,45 @@ const logoutUser = asyncHandler ( async(req, res) => {
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 } )
 
+const getAllUsers = asyncHandler( async (req, res) => {
+    const allUsers = await User.find().select("-password -refreshToken")
+    return res.status(200).json(new ApiResponse(200, allUsers, "All users fetched successfully"));
+} )
+
+const getCurrentUser = asyncHandler( async (req, res) => {
+    return res.status(200).json(new ApiResponse(200, req?.user, "Current user details fetched successfully"));
+} )
+
+const updateUserProfile = asyncHandler( async (req, res) => {
+
+    let hashedPassword;
+    if(req.body?.password) 
+        hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                username: req.body?.username || req.user?.username, 
+                email: req.body?.email || req.user?.email, 
+                password: hashedPassword || req.user?.password, 
+            }
+        },
+        { new: true }
+    )
+
+    if(!user) {
+        res.status(500)
+        throw new Error("Unable to update user")
+    }
+
+    return res.status(200).json(new ApiResponse(200, user, "User details updated successfully"));
+} )
 export {
     registerUser,
     loginUser,
-    logoutUser
+    logoutUser,
+    getAllUsers,
+    getCurrentUser,
+    updateUserProfile
 }
